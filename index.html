@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forest Mystery</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a;
+            color: #eee;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0rem auto;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #8bc34a;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            margin-bottom: 1rem;
+        }
+        
+        #game-container {
+            background-color: #2a2a2a;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+            position: relative;
+        }
+        
+        #story-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+        
+        #choices {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 3rem;
+        }
+        
+        .choice-btn {
+            background-color: #4a7c32;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+        
+        .choice-btn:hover {
+            background-color: #5d9e41;
+            transform: translateY(-2px);
+        }
+        
+        #game-stats {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-top: 2rem;
+            text-align: left;
+        }
+        
+        .game-map {
+            width: 410px;
+            height: 550px;
+            display: none;
+            margin: 2rem auto;
+            position: relative;
+        }
+        
+        .map-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 40px);
+            grid-template-rows: repeat(10, 40px);
+            gap: 1px;
+            z-index: 0;
+        }
+        
+        .grid-cell {
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+        
+        .obstacle {
+            background-color: rgba(165, 42, 42, 0.5);
+            pointer-events: none;
+        }
+        
+        /* PLAYER uses sprite images dynamically set via JS */
+        .player {
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            z-index: 10;
+            transition: all 0.3s ease;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        /* NPC styling: absolutely positioned, similar to the player */
+        .npc {
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            z-index: 9; /* behind the player if they overlap */
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        
+        .event-cell {
+            background-color: rgba(100, 149, 237, 0.3);
+            cursor: pointer;
+        }
+        
+        .event-cell:hover {
+            background-color: rgba(100, 149, 237, 0.5);
+        }
+        
+        .map-bg {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 410px;
+            height: 410px;
+            background-image: url('map-background.png');
+            background-size: cover;
+            background-position: center;
+            opacity: 1;
+            z-index: 1;
+            border-radius: 5px;
+        }
+        
+        #start-game, #restart-game {
+            background-color: #8bc34a;
+            color: #1a1a1a;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+        
+        #start-game:hover, #restart-game:hover {
+            background-color: #a4d967;
+            transform: scale(1.05);
+        }
+        
+        #restart-game {
+            display: none;
+        }
+        
+        .direction-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 50px);
+            grid-template-rows: repeat(3, 50px);
+            gap: 5px;
+            margin: 1rem auto;
+            display: none;
+        }
+        
+        .direction-btn {
+            background-color: #4a7c32;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .direction-btn:hover {
+            background-color: #5d9e41;
+        }
+        
+        .direction-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .direction-btn.center {
+            background-color: transparent;
+            cursor: default;
+        }
+        
+        #inventory {
+            background-color: #2a2a2a;
+            border-radius: 5px;
+            padding: 1rem;
+            margin-top: 1rem;
+            width: 100%;
+            text-align: left;
+        }
+        
+        #inventory h3 {
+            margin-top: 0;
+            color: #8bc34a;
+        }
+        
+        .inventory-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .inventory-item {
+            background-color: #4a4a4a;
+            padding: 0.5rem;
+            border-radius: 3px;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .map-grid {
+                grid-template-columns: repeat(10, 25px);
+                grid-template-rows: repeat(10, 25px);
+            }
+            
+            .grid-cell {
+                width: 25px;
+                height: 25px;
+            }
+            
+            .player {
+                width: 25px;
+                height: 25px;
+            }
+            .npc {
+                width: 25px;
+                height: 25px;
+            }
+        }
+        
+        .location-name {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .ending-message {
+            background-color: #2a5a1a;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            text-align: center;
+            display: none;
+        }
+        
+        .ending-title {
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            color: #a4d967;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Forest Mystery</h1>
+        
+        <div id="game-container">
+            <div id="story-text">
+                You find yourself at the edge of a mysterious forest village. The air is thick with mist, and you can make out a few small cottages nestled among ancient trees. You've heard rumors of a magical artifact hidden somewhere in this village. Can you find it before nightfall?
+            </div>
+            
+            <div id="choices">
+                <button id="start-game" class="choice-btn">Begin Your Search</button>
+            </div>
+            
+            <div class="game-map" id="game-map">
+                <div class="map-bg"></div>
+                <div class="map-grid" id="map-grid"></div>
+
+                <!-- Player element with direction-based sprites set in JS -->
+                <div class="player" id="player"></div>
+
+                <!-- NPCs get dynamically appended here, each with .npc class -->
+                
+                <div class="location-name" id="location-name"></div>
+                
+                <div class="direction-controls">
+                    <div class="direction-btn"></div>
+                    <button class="direction-btn" id="move-up">↑</button>
+                    <div class="direction-btn"></div>
+                    <button class="direction-btn" id="move-left">←</button>
+                    <div class="direction-btn center"></div>
+                    <button class="direction-btn" id="move-right">→</button>
+                    <div class="direction-btn"></div>
+                    <button class="direction-btn" id="move-down">↓</button>
+                    <div class="direction-btn"></div>
+                </div>
+                
+                <div id="inventory">
+                    <h3>Inventory</h3>
+                    <div class="inventory-items" id="inventory-items">
+                        <em>Empty</em>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="ending-message" id="ending-message">
+                <div class="ending-title" id="ending-title">Ending Title</div>
+                <div id="ending-description">Ending description</div>
+            </div>
+            
+            <button id="restart-game" class="choice-btn">Start New Adventure</button>
+            
+            <div id="game-stats">
+                <p>Time played: <span id="time-played">0:00</span></p>
+                <p>Locations discovered: <span id="discoveries">0</span></p>
+                <br />
+                <hr />
+                <p><b>Collect All Items To Find The Crystal</b></p>
+                <ul style="padding-inline-start: 24px;">
+                    <li>Well Water</li>
+                    <li>Sacred Soil</li>
+                    <li>Mystic Fire</li>
+                    <li>Magic Word</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        const gameState = {
+            startTime: null,
+            endTime: null,
+            choicesMade: 0,
+            inventory: [],
+            currentNode: "start",
+            playerPosition: { x: 5, y: 9 }, // Starting position (bottom of map)
+            visitedLocations: new Set(),
+            discoveredEvents: new Set(),
+            cluesFound: 0,
+            gameOver: false,
+
+            // Track the last movement direction for updating the player sprite
+            playerDirection: 'down'
+        };
+
+        // We'll define a few NPCs to appear in the world. 
+        // (Use whichever coordinates you like; these are examples.)
+        const npcsData = [
+          {
+            x: 0,
+            y: 5,
+            name: 'Village Resident',
+            sprite: 'npc-sprite.png'
+          },
+          {
+            x: 9,
+            y: 3,
+            name: 'Suspicious Stranger',
+            sprite: 'npc-sprite.png'
+          }
+        ];
+
+        // Map data
+        const mapData = {
+            width: 10,
+            height: 10,
+            // 1 = obstacle, 0 = walkable
+            grid: [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 1, 1, 1, 1, 0, 0, 1],
+                [1, 1, 0, 0, 0, 1, 1, 0, 0, 1],
+                [1, 1, 1, 0, 0, 0, 0, 0, 1, 1],
+                [1, 1, 0, 0, 0, 0, 1, 0, 0, 1],
+                [1, 0, 0, 0, 1, 1, 0, 0, 0, 1],
+                [1, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 0, 0, 0, 0, 0, 1, 1],
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 1, 1, 1, 0, 0, 1, 1, 1, 1]
+            ],
+            events: [
+                { x: 8, y: 5, id: "village_center", name: "Village Center" },
+                { x: 5, y: 7, id: "elders_house", name: "Elder's House" },
+                { x: 4, y: 2, id: "mystic_cottage", name: "Mystic's Cottage" },
+                { x: 2, y: 8, id: "ancient_well", name: "Ancient Well" },
+                { x: 1, y: 5, id: "sacred_tree", name: "Sacred Tree" }
+            ]
+        };
+
+        // Story nodes
+        const storyNodes = {
+            "start": {
+                text: "You stand at the edge of a secluded forest village. The villagers seem to be out somewhere, and the mist gives everything an ethereal quality. You've heard legends of a magical crystal hidden in this place - one that could grant visions of the future. Night falls in 10 minutes, and you'll need to leave by then.",
+                choices: [
+                    { text: "Enter the village and begin your search", nextNode: "explore_village" }
+                ]
+            },
+            "explore_village": {
+                text: "You're now in the village. Use the directional controls to move around and discover important locations. You'll need to find clues about the crystal's location.",
+                choices: []
+            },
+            "village_center": {
+                text: "You reach the center of the village. A weathered stone marker stands here with carvings that seem to tell a story. You notice symbols pointing to different buildings in the village.",
+                choices: [
+                    { text: "Examine the stone marker closely", nextNode: "examine_marker" },
+                    { text: "Continue exploring", nextNode: "continue_exploring" }
+                ]
+            },
+            "examine_marker": {
+                text: "The carvings show four symbols: a tree, a well, a house with smoke, and a house with stars. In the center is a crystal shape. The symbols seem to be arranged in a specific pattern, perhaps indicating how to find the crystal.",
+                choices: [
+                    { text: "Make a mental note of the pattern", nextNode: "continue_exploring", addItem: "Stone Marker Clue" }
+                ]
+            },
+            "elders_house": {
+                text: "This sturdy house seems to belong to the village elder. The door is unlocked. Inside, you find a simple living space with a desk covered in papers and an old book.",
+                choices: [
+                    { text: "Look through the papers", nextNode: "examine_papers" },
+                    { text: "Check the book", nextNode: "examine_book" },
+                    { text: "Leave the house", nextNode: "continue_exploring" }
+                ]
+            },
+            "examine_papers": {
+                text: "Most papers contain village records, but one catches your eye - a note mentioning 'the guardian tree protects the crystal's power' and 'only when all four elements are gathered can the path be revealed.'",
+                choices: [
+                    { text: "Take the note", nextNode: "take_note", addItem: "Elder's Note" },
+                    { text: "Check the book instead", nextNode: "examine_book" },
+                    { text: "Leave the house", nextNode: "continue_exploring" }
+                ]
+            },
+            "take_note": {
+                text: "You pocket the note. It seems important for finding the crystal.",
+                choices: [
+                    { text: "Check the book now", nextNode: "examine_book" },
+                    { text: "Leave the house", nextNode: "continue_exploring" }
+                ]
+            },
+            "examine_book": {
+                text: "The book is titled 'Village Traditions'. A marked page describes a ritual: 'Water from the ancient well, carried in a clay vessel. Earth from the sacred tree's roots. Fire from the mystic's hearth. Air blessed by the elder's whispers. Together, they open the path.'",
+                choices: [
+                    { text: "Remember this information", nextNode: "continue_exploring", addItem: "Ritual Description" }
+                ]
+            },
+            "mystic_cottage": {
+                text: "This small cottage has strange symbols painted on the door. Inside, you find crystals, herbs, and a small hearth with glowing embers. A glass container sits on a shelf.",
+                choices: [
+                    { text: "Examine the glowing embers", nextNode: "examine_embers" },
+                    { text: "Look at the glass container", nextNode: "examine_container" },
+                    { text: "Leave the cottage", nextNode: "continue_exploring" }
+                ]
+            },
+            "examine_embers": {
+                text: "The embers glow with an unnatural blue light. They don't seem to be consuming the wood beneath them. According to the ritual, you need 'fire from the mystic's hearth'.",
+                choices: [
+                    { text: "Take some embers carefully", inventoryRequires: "Empty Pouch", nextNode: "take_embers", addItem: "Mystic Fire" },
+                    { text: "Look at the glass container", nextNode: "examine_container" },
+                    { text: "Leave the cottage", nextNode: "continue_exploring" }
+                ]
+            },
+            "take_embers": {
+                text: "You carefully place some of the glowing embers into your pouch. They remain mysteriously cool to the touch while still glowing.",
+                choices: [
+                    { text: "Look at the glass container", nextNode: "examine_container" },
+                    { text: "Leave the cottage", nextNode: "continue_exploring" }
+                ]
+            },
+            "examine_container": {
+                text: "The glass container holds a small leather pouch. A label says 'For the seeker of visions'.",
+                choices: [
+                    { text: "Take the pouch", nextNode: "take_pouch", addItem: "Empty Pouch" },
+                    { text: "Examine the embers", nextNode: "examine_embers" },
+                    { text: "Leave the cottage", nextNode: "continue_exploring" }
+                ]
+            },
+            "take_pouch": {
+                text: "You take the pouch. It seems designed to carry small items safely.",
+                choices: [
+                    { text: "Examine the embers now", nextNode: "examine_embers" },
+                    { text: "Leave the cottage", nextNode: "continue_exploring" }
+                ]
+            },
+            "ancient_well": {
+                text: "You approach an old stone well. The water below is crystal clear and glimmers mysteriously. According to the ritual, you need 'water from the ancient well, carried in a clay vessel.'",
+                choices: [
+                    { text: "Look around for a vessel", nextNode: "find_vessel" },
+                    { text: "Try to collect water with your hands", nextNode: "hands_water" },
+                    { text: "Leave the well", nextNode: "continue_exploring" }
+                ]
+            },
+            "find_vessel": {
+                text: "You spot a small clay cup sitting on the edge of the well. It seems to have been left here deliberately.",
+                choices: [
+                    { text: "Take the cup and collect water", nextNode: "collect_water", addItem: "Well Water" },
+                    { text: "Leave the well", nextNode: "continue_exploring" }
+                ]
+            },
+            "hands_water": {
+                text: "The water slips through your fingers. You need a proper vessel to collect it.",
+                choices: [
+                    { text: "Look around for a vessel", nextNode: "find_vessel" },
+                    { text: "Leave the well", nextNode: "continue_exploring" }
+                ]
+            },
+            "collect_water": {
+                text: "You fill the clay cup with the clear water from the well. It has a slight blue glow in the cup.",
+                choices: [
+                    { text: "Leave the well", nextNode: "continue_exploring" }
+                ]
+            },
+            "sacred_tree": {
+                text: "You come to an enormous ancient tree with patterns in its bark that almost look like faces. The ground around it is rich with dark soil. According to the ritual, you need 'earth from the sacred tree's roots.'",
+                choices: [
+                    { text: "Collect some soil", inventoryRequires: "Empty Pouch", nextNode: "collect_soil", addItem: "Sacred Soil" },
+                    { text: "Listen to the tree", nextNode: "listen_tree" },
+                    { text: "Leave the tree", nextNode: "continue_exploring" }
+                ]
+            },
+            "collect_soil": {
+                text: "You collect some of the rich soil in your pouch. It feels unusually warm to the touch.",
+                choices: [
+                    { text: "Listen to the tree", nextNode: "listen_tree" },
+                    { text: "Leave the tree", nextNode: "continue_exploring" }
+                ]
+            },
+            "listen_tree": {
+                text: "As you press your ear against the bark, you could swear you hear faint whispers: '...when the elements come together... at the center... speak the word 'revelio'...'",
+                choices: [
+                    { text: "Remember this word", nextNode: "continue_exploring", addItem: "Magic Word" }
+                ]
+            },
+            "continue_exploring": {
+                text: "You continue your exploration of the village.",
+                choices: []
+            },
+            "activate_ritual": {
+                text: "Standing at the village center, you combine the elements according to the ritual: the well water, sacred soil, mystic fire, and you whisper into the mixture as the elder would. The ground beneath you trembles slightly.",
+                choices: [
+                    { text: "Speak the word 'Revelio'", inventoryRequires: "Magic Word", nextNode: "speak_word" },
+                    { text: "Wait and see what happens", nextNode: "wait_ritual" }
+                ]
+            },
+            "wait_ritual": {
+                text: "Nothing further happens. You feel like you're missing a final step to complete the ritual.",
+                choices: [
+                    { text: "Try to remember if you learned any special words", nextNode: "continue_exploring" }
+                ]
+            },
+            "speak_word": {
+                text: "As you speak the word 'Revelio,' the elements glow brightly and merge into a shining light. The stone marker in the center splits open, revealing a hidden compartment containing a crystal that glows with an inner blue light.",
+                choices: [
+                    { text: "Take the crystal", nextNode: "take_crystal" }
+                ]
+            },
+            "take_crystal": {
+                text: "You carefully take the crystal. As soon as you touch it, visions flash through your mind - glimpses of possible futures, branching paths of time. The crystal has shown you what you sought, but also revealed the weight of such knowledge.",
+                choices: [
+                    { text: "End your journey", nextNode: "end_crystal" }
+                ]
+            },
+            "end_crystal": {
+                text: "With the crystal in hand, you leave the village as night falls. The knowledge you've gained will change your perspective forever. You've successfully completed your quest!",
+                choices: [],
+                ending: {
+                    title: "The Visionary",
+                    description: "You found the crystal and gained glimpses of possible futures. With this knowledge comes great responsibility. Will you use it wisely?"
+                }
+            },
+            "end_time": {
+                text: "The sun sets completely, and darkness falls over the village. You've run out of time to find the crystal. Perhaps another day you'll return better prepared.",
+                choices: [],
+                ending: {
+                    title: "Out of Time",
+                    description: "Night has fallen. The crystal remains hidden, waiting for another seeker."
+                }
+            }
+        };
+
+        // DOM references
+        const storyTextElement = document.getElementById('story-text');
+        const choicesElement = document.getElementById('choices');
+        const startButton = document.getElementById('start-game');
+        const restartButton = document.getElementById('restart-game');
+        const gameMapElement = document.getElementById('game-map');
+        const mapGridElement = document.getElementById('map-grid');
+        const playerElement = document.getElementById('player');
+        const timePlayedElement = document.getElementById('time-played');
+        const discoveriesElement = document.getElementById('discoveries');
+        const inventoryItemsElement = document.getElementById('inventory-items');
+        const locationNameElement = document.getElementById('location-name');
+        const endingMessageElement = document.getElementById('ending-message');
+        const endingTitleElement = document.getElementById('ending-title');
+        const endingDescriptionElement = document.getElementById('ending-description');
+
+        // Direction controls
+        const moveUpButton = document.getElementById('move-up');
+        const moveLeftButton = document.getElementById('move-left');
+        const moveRightButton = document.getElementById('move-right');
+        const moveDownButton = document.getElementById('move-down');
+        let lockPlayer = false;
+        // Timer variables
+        let timerInterval;
+        let timeLimit = 600; // 10 minutes in seconds
+        let timeElapsed = 0;
+
+        // NPC elements array
+        let npcElements = [];
+
+        // Initialize the game
+        function initGame() {
+            // Reset game state
+            gameState.startTime = new Date();
+            gameState.endTime = null;
+            gameState.choicesMade = 0;
+            gameState.inventory = [];
+            gameState.currentNode = "start";
+            gameState.playerPosition = { x: 5, y: 9 };
+            gameState.visitedLocations = new Set();
+            gameState.discoveredEvents = new Set();
+            gameState.cluesFound = 0;
+            gameState.gameOver = false;
+            gameState.playerDirection = 'down'; // reset direction to down
+            
+            // Reset UI
+            updateStoryNode("start");
+            createGameMap();
+            createNPCs();
+            updateInventoryDisplay();
+            updateDiscoveriesCount();
+            
+            // Hide/show elements
+            gameMapElement.style.display = 'block';
+            startButton.style.display = 'block';
+            restartButton.style.display = 'none';
+            endingMessageElement.style.display = 'none';
+            
+            // Reset timer display
+            timeElapsed = 0;
+            updateTimerDisplay();
+
+            // Update the player's initial sprite
+            updatePlayerSprite();
+        }
+
+        // Update story node display
+        function updateStoryNode(nodeId) {
+            const node = storyNodes[nodeId];
+            if (!node) return;
+            
+            gameState.currentNode = nodeId;
+            storyTextElement.textContent = node.text;
+            
+            // Clear previous choices
+            choicesElement.innerHTML = '';
+            
+            // Add new choices
+            node.choices.forEach(choice => {
+                // Check inventory requirements
+                if (choice.inventoryRequires && !gameState.inventory.includes(choice.inventoryRequires)) {
+                    return; // Skip if requirement not met
+                }
+                
+                const button = document.createElement('button');
+                button.className = 'choice-btn';
+                button.textContent = choice.text;
+                button.addEventListener('click', () => {
+                    makeChoice(choice);
+                });
+                choicesElement.appendChild(button);
+            });
+            
+            // Check if this is an ending
+            if (node.ending) {
+                endGame(node.ending);
+            }
+        }
+
+        // Handle player choice
+        function makeChoice(choice) {
+            gameState.choicesMade++;
+            
+            // Add item to inventory if specified
+            if (choice.addItem && !gameState.inventory.includes(choice.addItem)) {
+                gameState.inventory.push(choice.addItem);
+                updateInventoryDisplay();
+            }
+            
+            // Move to next node
+            if (choice.nextNode) {
+                updateStoryNode(choice.nextNode);
+            }
+            if(choice.nextNode == "continue_exploring"){
+                lockPlayer = false;
+            }
+        }
+
+        // Create game map
+        function createGameMap() {
+            mapGridElement.innerHTML = '';
+            
+            for (let y = 0; y < mapData.height; y++) {
+                for (let x = 0; x < mapData.width; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell';
+                    
+                    if (mapData.grid[y][x] === 1) {
+                        cell.classList.add('obstacle');
+                    }
+                    
+                    // Check if cell has an event
+                    const eventAtCell = mapData.events.find(event => event.x === x && event.y === y);
+                    if (eventAtCell) {
+                        cell.classList.add('event-cell');
+                        cell.setAttribute('data-event-id', eventAtCell.id);
+                        cell.setAttribute('data-event-name', eventAtCell.name);
+                        
+                        // Add event handler
+                        cell.addEventListener('click', () => {
+                            handleCellClick(x, y);
+                        });
+                    }
+                    
+                    mapGridElement.appendChild(cell);
+                }
+            }
+            // Position player
+            updatePlayerPosition();
+        }
+
+        // Create NPCs as absolutely positioned sprites
+        function createNPCs() {
+            // First, remove any existing NPC elements
+            npcElements.forEach(el => el.remove());
+            npcElements = [];
+
+            npcsData.forEach(npc => {
+                const npcEl = document.createElement('div');
+                npcEl.className = 'npc';
+                // Use the provided sprite
+                npcEl.style.backgroundImage = `url('${npc.sprite}')`;
+                // We'll position them similarly to the player, based on cell size
+                document.querySelector('.game-map').appendChild(npcEl);
+                npcElements.push({ data: npc, element: npcEl });
+            });
+            updateNPCPositions();
+        }
+
+        // Update NPC positions (similar to the player)
+        function updateNPCPositions() {
+            const cellSize = window.innerWidth > 768 ? 40 : 25;
+            npcElements.forEach(npcObj => {
+                const { x, y } = npcObj.data;
+                const { element } = npcObj;
+                element.style.left = `${x * cellSize}px`;
+                element.style.top = `${y * cellSize}px`;
+            });
+        }
+
+        // Update player position
+        function updatePlayerPosition() {
+            const cellSize = window.innerWidth > 768 ? 40 : 25;
+            const x = gameState.playerPosition.x;
+            const y = gameState.playerPosition.y;
+            playerElement.style.left = `${x * cellSize}px`;
+            playerElement.style.top = `${y * cellSize}px`;
+            
+            // Check for event at current position
+            checkForEvent();
+        }
+
+        // Adjust player’s sprite based on direction
+        function updatePlayerSprite() {
+            const dir = gameState.playerDirection;
+            let spriteUrl = 'player_down.png'; // default
+            if (dir === 'up') spriteUrl = 'player_up.png';
+            else if (dir === 'down') spriteUrl = 'player_down.png';
+            else if (dir === 'left') spriteUrl = 'player_left.png';
+            else if (dir === 'right') spriteUrl = 'player_right.png';
+            playerElement.style.backgroundImage = `url('${spriteUrl}')`;
+        }
+
+        // Move player
+        function movePlayer(dx, dy) {
+            eventAtPosition = mapData.events.find(event => event.x === gameState.playerPosition.x && event.y === gameState.playerPosition.y);
+            if(!lockPlayer){
+            // if(!eventAtPosition || gameState.visitedLocations.has(eventAtPosition.id)){
+                const newX = gameState.playerPosition.x + dx;
+                const newY = gameState.playerPosition.y + dy;
+            
+            // Update direction for sprite
+            if (dx === 1) gameState.playerDirection = 'right';
+            if (dx === -1) gameState.playerDirection = 'left';
+            if (dy === 1) gameState.playerDirection = 'down';
+            if (dy === -1) gameState.playerDirection = 'up';
+            updatePlayerSprite();
+            
+            // Check boundaries and obstacles
+            if (newX >= 0 && newX < mapData.width && 
+                newY >= 0 && newY < mapData.height && 
+                mapData.grid[newY][newX] !== 1) {
+                
+                gameState.playerPosition.x = newX;
+                gameState.playerPosition.y = newY;
+                updatePlayerPosition();
+            }
+            }
+
+        }
+
+        // Check for event at current position
+        function checkForEvent() {
+            const x = gameState.playerPosition.x;
+            const y = gameState.playerPosition.y;
+            
+            // Find event at current position
+            const eventAtPosition = mapData.events.find(event => event.x === x && event.y === y);
+            
+            if (eventAtPosition) {
+                // Show location name
+                locationNameElement.textContent = eventAtPosition.name;
+                locationNameElement.style.display = 'block';
+                // const eventId = eventAtPosition.target.getAttribute('data-event-id');
+                // if (!gameState.discoveredEvents.has(eventAtPosition.id)) {
+                    gameState.discoveredEvents.add(eventAtPosition.id);
+                    updateStoryNode(eventAtPosition.id);
+                // }
+                
+                // Add to visited locations if not already visited
+                if (!gameState.visitedLocations.has(eventAtPosition.id)) {
+                    gameState.visitedLocations.add(eventAtPosition.id);
+                    lockPlayer = true;
+                    updateDiscoveriesCount();
+                }
+                
+                // If all required items are in inventory at village center
+                if (eventAtPosition.id === 'village_center' && 
+                    gameState.inventory.includes('Well Water') && 
+                    gameState.inventory.includes('Sacred Soil') && 
+                    gameState.inventory.includes('Mystic Fire')) {
+                    updateStoryNode('activate_ritual');
+                }
+            } else {
+                locationNameElement.style.display = 'none';
+                updateStoryNode("continue_exploring");
+
+            }
+        }
+
+        // Handle cell click (for mobile or clicking around)
+        function handleCellClick(x, y) {
+            // Only process if adjacent to player
+            const dx = x - gameState.playerPosition.x;
+            const dy = y - gameState.playerPosition.y;
+            if (Math.abs(dx) + Math.abs(dy) === 1) {
+                movePlayer(dx, dy);
+            }
+        }
+
+        // Update inventory display
+        function updateInventoryDisplay() {
+            if (gameState.inventory.length === 0) {
+                inventoryItemsElement.innerHTML = '<em>Empty</em>';
+            } else {
+                inventoryItemsElement.innerHTML = '';
+                gameState.inventory.forEach(item => {
+                    const itemElement = document.createElement('div');
+                    itemElement.className = 'inventory-item';
+                    itemElement.textContent = item;
+                    inventoryItemsElement.appendChild(itemElement);
+                });
+            }
+        }
+
+        // Update discoveries count
+        function updateDiscoveriesCount() {
+            discoveriesElement.textContent = `${gameState.visitedLocations.size}/5`;
+        }
+
+        // Update timer display
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeElapsed / 60);
+            const seconds = timeElapsed % 60;
+            timePlayedElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            
+            // Check for time limit
+            if (timeElapsed >= timeLimit && !gameState.gameOver) {
+                endGame(storyNodes["end_time"].ending);
+            }
+        }
+
+        // Start the game timer
+        function startTimer() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeElapsed++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        // End the game
+        function endGame(ending) {
+            gameState.gameOver = true;
+            gameState.endTime = new Date();
+            clearInterval(timerInterval);
+            
+            // Display ending
+            endingTitleElement.textContent = ending.title;
+            endingDescriptionElement.textContent = ending.description;
+            endingMessageElement.style.display = 'block';
+            
+            // Show restart button
+            restartButton.style.display = 'block';
+        }
+
+        // Start game button event
+        startButton.addEventListener('click', () => {
+            startButton.style.display = 'none';
+            gameMapElement.style.display = 'block';
+            updateStoryNode('explore_village');
+            startTimer();
+        });
+
+        // Restart game button event
+        restartButton.addEventListener('click', () => {
+            initGame();
+        });
+
+        // Direction button events
+        moveUpButton.addEventListener('click', () => {
+            movePlayer(0, -1);
+        });
+        moveLeftButton.addEventListener('click', () => {
+            movePlayer(-1, 0);
+        });
+        moveRightButton.addEventListener('click', () => {
+            movePlayer(1, 0);
+        });
+        moveDownButton.addEventListener('click', () => {
+            movePlayer(0, 1);
+        });
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (gameState.gameOver) return;
+            switch(e.key) {
+                case 'w':
+                    movePlayer(0, -1);
+                    break;
+                case 'a':
+                    movePlayer(-1, 0);
+                    break;
+                case 'd':
+                    movePlayer(1, 0);
+                    break;
+                case 's':
+                    movePlayer(0, 1);
+                    break;
+            }
+        });
+
+        // Event listeners for special story events (clicking event-cells)
+        mapGridElement.addEventListener('click', (e) => {
+            if (e.target.classList.contains('event-cell')) {
+                const eventId = e.target.getAttribute('data-event-id');
+                if (eventId && !gameState.discoveredEvents.has(eventId)) {
+                    gameState.discoveredEvents.add(eventId);
+                    updateStoryNode(eventId);
+                }
+            }
+        });
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            initGame();
+        });
+
+        // Handle window resize to update positions
+        window.addEventListener('resize', () => {
+            updatePlayerPosition();
+            updateNPCPositions();
+        });
+    </script>
+</body>
+</html>
